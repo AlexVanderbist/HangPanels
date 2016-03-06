@@ -1,6 +1,8 @@
 import json
 import pandas
 import datetime
+from utils import DotDictify
+from collections import Counter
 
 
 class ChatsPanel(pandas.Panel):
@@ -36,13 +38,26 @@ class ChatsPanel(pandas.Panel):
         """
 
         with open(json_log) as json_data:
-            data = json.load(json_data)
+            data = DotDictify(json.load(json_data))
 
         frames = {}
-        for conversation in data["conversation_state"]:
+
+        for conversation in data.conversation_state:
             df = self.get_data_frame(conversation)
             if isinstance(df, pandas.DataFrame):
-                frames[conversation["conversation_state"]["conversation_id"]["id"]] = df
+                name = conversation.conversation_state.conversation.get("name", False)
+                if name:
+                    frames[name.title().replace(" ", "_")] = df
+                else:
+                    users = []
+
+                    for user in conversation.conversation_state.conversation.participant_data:
+                        if user.get("fallback_name", False):
+                            users.append(user.get("fallback_name"))
+                        else:
+                            users.append(conversation.conversation_state.conversation_id.id[4:8])
+
+                    frames["_".join(u.title().replace(" ", "_") for u in users)] = df
 
         return frames
 
@@ -52,54 +67,44 @@ class ChatsPanel(pandas.Panel):
         Extracts a whole conversation
 
         :param conversation: A whole Hangouts log conversation
-        :type conversation: dict
+        :type conversation: utils.DotDictify
 
         :returns: A pandas.DataFrame with each message as a row
         :rtype: pandas.DataFrame
         """
 
-        try:
-            event_list = []
+        event_list = []
 
-            for event in conversation["conversation_state"]["event"]:
-                event_id = event["event_id"]
-                sender_id = event["sender_id"]
-                timestamp = datetime.datetime.fromtimestamp(float(event["timestamp"])/1000000)
-                text = list()
+        for event in conversation.conversation_state.event:
+            event_id = event.get("event_id", False)
+            sender_id = event.sender_id.gaia_id
+            timestamp = datetime.datetime.fromtimestamp(float(event.timestamp)/1000000)
+            text = []
 
-                try:
-                    message_content = event["chat_message"]["message_content"]
+            if event.get("chat_message", False):
+                message_content = event.chat_message.message_content
 
-                    try:
-                        for segment in message_content["segment"]:
-                            if segment["type"].lower() in ["text", "link"]:
-                                text.append(segment["text"])
+                if message_content.get("segment", False):
+                    for segment in message_content.segment:
+                        if segment.type.lower() in ["text", "link"] and segment.get("text", False):
+                            text.append(segment.text)
 
-                    except KeyError:
-                        # may happen when there is no (compatible) attachment
-                        pass
-
-                    try:
-                        for attachment in message_content["attachment"]:
-                            # if there is a Google+ photo attachment we append the URL
-                            if attachment["embed_item"]["type"][0].lower() == "PLUS_PHOTO".lower():
-                                text.append(attachment["embed_item"]["embeds.PlusPhoto.plus_photo"]["url"])
-
-                    except KeyError:
-                        pass
-
-                except KeyError:
-                    continue
+                if message_content.get("attachment", False):
+                    for attachment in message_content.attachment:
+                        if attachment.embed_item.type[0].lower() == "PLUS_PHOTO".lower():
+                            text.append(attachment.embed_item["embeds.PlusPhoto.plus_photo"].url)
+                        if attachment.embed_item.type[0].lower() == "PLACE_V2".lower():
+                            text.append(attachment.embed_item.id)
 
                 event_list.append({"timestamp": timestamp,
                                    "event_id": event_id,
-                                   "sender_id": sender_id["gaia_id"],
+                                   "sender_id": sender_id,
                                    "content": " ".join(text)})
-            if len(event_list) > 0:
-                return pandas.DataFrame(event_list).set_index('timestamp')
-            else:
-                return None
 
-        except KeyError:
-            raise RuntimeError(
-                "The conversation with id: {} could not be extracted.".format(conversation["conversation_id"]["id"]))
+            else:
+                continue
+
+        if len(event_list) > 0:
+            return pandas.DataFrame(event_list).set_index("timestamp")
+        else:
+            return None
