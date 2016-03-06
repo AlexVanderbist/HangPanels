@@ -10,8 +10,7 @@ class DotDictify(dict):
     __getattr__ = dict.__getitem__
 
     def __init__(self, d):
-        self.update(**dict((k, self.parse(v))
-                           for k, v in d.items()))
+        self.update(**dict((k, self.parse(v)) for k, v in d.items()))
 
     @classmethod
     def parse(cls, v):
