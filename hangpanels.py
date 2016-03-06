@@ -2,7 +2,6 @@ import json
 import pandas
 import datetime
 from utils import DotDictify
-from collections import Counter
 
 
 class ChatsPanel(pandas.Panel):
