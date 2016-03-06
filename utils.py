@@ -1,4 +1,11 @@
 class DotDictify(dict):
+    """
+    Get's a :py:class:`dict` and creates a dot searchable dictionary. Key errors when navigating in a dictionary
+    are managed much more easily.
+
+    :return: A new instance
+    :rtype: utils.DotDictify
+    """
 
     __getattr__ = dict.__getitem__
 

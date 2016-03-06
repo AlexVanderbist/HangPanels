@@ -7,8 +7,8 @@ from collections import Counter
 
 class ChatsPanel(pandas.Panel):
     """
-    Creates a pandas.Panel where each pandas.DataFrame is a conversation from the `Hangouts.json` log file
-    indexed by the time of each message. It tries to handle as much attachments as possible.
+    Creates a :py:class:`pandas.Panel` where each :py:class:`pandas.DataFrame` is a conversation from the
+    `Hangouts.json` log file indexed by the time of each message. It tries to handle as much attachments as possible.
     """
 
     def __init__(self, json_log, *args, **kwargs):
