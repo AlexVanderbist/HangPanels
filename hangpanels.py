@@ -9,6 +9,7 @@ class ChatsPanel(pandas.Panel):
     """
     Creates a :py:class:`pandas.Panel` where each :py:class:`pandas.DataFrame` is a conversation from the
     `Hangouts.json` log file indexed by the time of each message. It tries to handle as much attachments as possible.
+    Right now supports image and place attachments, adding the url to those objects as the message text.
     """
 
     def __init__(self, json_log, *args, **kwargs):
@@ -28,7 +29,7 @@ class ChatsPanel(pandas.Panel):
 
     def load_json(self, json_log):
         """
-        Loads the JSON file
+        Loads the JSON file at the instantiation.
 
         :param json_log: Reference to the log file
         :type json_log: string
@@ -64,7 +65,7 @@ class ChatsPanel(pandas.Panel):
     @staticmethod
     def get_data_frame(conversation):
         """
-        Extracts a whole conversation
+        Extracts a whole conversation.
 
         :param conversation: A whole Hangouts log conversation
         :type conversation: utils.DotDictify
@@ -108,3 +109,13 @@ class ChatsPanel(pandas.Panel):
             return pandas.DataFrame(event_list).set_index("timestamp")
         else:
             return None
+
+    def conversations(self):
+        """
+        See all chats in the panel. The name is taken from the chat if exists, if not, takes the :code:`fallback_name`
+        of each user and puts them together.
+
+        :return: Name of the chats
+        :rtype: numpy.ndarray
+        """
+        return self.axes[0].values

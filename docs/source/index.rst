@@ -12,6 +12,7 @@ Contents:
 ---------
 .. toctree::
     :numbered:
+    :caption: User Documentation
 
     installation
     documentation
